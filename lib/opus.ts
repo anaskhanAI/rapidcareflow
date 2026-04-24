@@ -1,6 +1,6 @@
-const BASE_URL = process.env.OPUS_BASE_URL || "https://operator.opus.com";
-const SERVICE_KEY = process.env.OPUS_SERVICE_KEY!;
-const WORKFLOW_ID = process.env.OPUS_WORKFLOW_ID!;
+const BASE_URL = (process.env.OPUS_BASE_URL || "https://operator.opus.com").trim();
+const SERVICE_KEY = process.env.OPUS_SERVICE_KEY!.trim();
+const WORKFLOW_ID = process.env.OPUS_WORKFLOW_ID!.trim();
 
 const headers = () => ({
   "Content-Type": "application/json",
