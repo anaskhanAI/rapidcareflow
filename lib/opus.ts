@@ -28,7 +28,11 @@ export async function getUploadUrl(): Promise<{
     headers: headers(),
     body: JSON.stringify({ fileExtension: ".pdf", accessScope: "organization" }),
   });
-  if (!res.ok) throw new Error(`Failed to get upload URL: ${res.statusText}`);
+  if (!res.ok) {
+    let detail = res.statusText;
+    try { const body = await res.json(); detail = JSON.stringify(body); } catch { /* ignore */ }
+    throw new Error(`Failed to get upload URL (${res.status}): ${detail}`);
+  }
   return res.json();
 }
 
@@ -53,7 +57,11 @@ export async function initiateJob(
     headers: headers(),
     body: JSON.stringify({ workflowId: WORKFLOW_ID, title, description }),
   });
-  if (!res.ok) throw new Error(`Failed to initiate job: ${res.statusText}`);
+  if (!res.ok) {
+    let detail = res.statusText;
+    try { const body = await res.json(); detail = JSON.stringify(body); } catch { /* ignore */ }
+    throw new Error(`Failed to initiate job (${res.status}): ${detail}`);
+  }
   const data = await res.json();
   return data.jobExecutionId;
 }
