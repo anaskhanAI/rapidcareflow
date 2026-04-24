@@ -113,13 +113,19 @@ export default function DashboardPage() {
       }
       const { presignedUrl, fileUrl } = await urlRes.json();
 
-      // Step 2: Upload file DIRECTLY to S3 from the browser (bypasses Vercel 4.5MB limit)
-      const s3Res = await fetch(presignedUrl, {
-        method: "PUT",
+      // Step 2: Stream file through our proxy to Opus (avoids CORS on files.opus.com)
+      const s3Res = await fetch("/api/jobs/proxy-upload", {
+        method: "POST",
         body: file,
-        headers: { "Content-Type": "application/pdf" },
+        headers: {
+          "Content-Type": "application/pdf",
+          "x-upload-url": presignedUrl,
+        },
       });
-      if (!s3Res.ok) throw new Error("File upload to storage failed");
+      if (!s3Res.ok) {
+        const d = await s3Res.json().catch(() => ({}));
+        throw new Error(d.error || "File upload to storage failed");
+      }
 
       // Step 3: Initiate + execute the Opus job (no file, just the URL)
       setPhase("processing");
