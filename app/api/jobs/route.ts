@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { initiateJob, executeJob } from "@/lib/opus";
+import { getUploadUrl, uploadFileStream, initiateJob, executeJob } from "@/lib/opus";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
@@ -10,11 +10,32 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     step = "parse-body";
-    const { fileUrl, filename } = await request.json();
-    if (!fileUrl || !filename) {
-      return NextResponse.json({ error: "fileUrl and filename are required" }, { status: 400 });
+    const { signedUrl, filename } = await request.json();
+    if (!signedUrl || !filename) {
+      return NextResponse.json({ error: "signedUrl and filename are required" }, { status: 400 });
     }
 
+    // Download the file from Supabase Storage — outbound request, no size limit
+    step = "download-from-storage";
+    const fileRes = await fetch(signedUrl);
+    if (!fileRes.ok || !fileRes.body) {
+      throw new Error(`Failed to fetch file from storage (${fileRes.status})`);
+    }
+    const contentLength = fileRes.headers.get("content-length");
+
+    // Get Opus presigned upload URL
+    step = "get-upload-url";
+    const { presignedUrl, fileUrl } = await getUploadUrl();
+
+    // Stream the file body straight to Opus — still outbound, no Vercel limit
+    step = "upload-to-opus";
+    await uploadFileStream(
+      presignedUrl,
+      fileRes.body,
+      contentLength ? Number(contentLength) : undefined
+    );
+
+    // Initiate + execute the Opus workflow
     step = "initiate-job";
     const jobExecutionId = await initiateJob(
       `Medical Coding — ${filename}`,

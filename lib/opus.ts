@@ -36,16 +36,26 @@ export async function getUploadUrl(): Promise<{
   return res.json();
 }
 
-export async function uploadFile(
+// Streams a ReadableStream straight to Opus — no buffering, no size limit
+export async function uploadFileStream(
   presignedUrl: string,
-  fileBuffer: Buffer
+  stream: ReadableStream,
+  contentLength?: number
 ): Promise<void> {
+  const uploadHeaders: Record<string, string> = { "Content-Type": "application/pdf" };
+  if (contentLength) uploadHeaders["Content-Length"] = String(contentLength);
+
   const res = await fetch(presignedUrl, {
     method: "PUT",
-    body: fileBuffer as unknown as BodyInit,
-    headers: { "Content-Type": "application/pdf" },
+    body: stream,
+    headers: uploadHeaders,
+    // @ts-expect-error — duplex is required for streaming request bodies in Node fetch
+    duplex: "half",
   });
-  if (!res.ok) throw new Error(`File upload failed: ${res.statusText}`);
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`File upload to Opus failed (${res.status}): ${text}`);
+  }
 }
 
 export async function initiateJob(

@@ -31,3 +31,40 @@ create policy "Users update own jobs"
 -- Index for faster queries
 create index if not exists jobs_user_id_idx on public.jobs(user_id);
 create index if not exists jobs_created_at_idx on public.jobs(created_at desc);
+
+-- ----------------------------------------------------------------
+-- Storage bucket for PDF uploads (run ONCE if bucket doesn't exist)
+-- ----------------------------------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'job-uploads',
+  'job-uploads',
+  false,              -- private bucket
+  52428800,           -- 50 MB max per file
+  array['application/pdf']
+)
+on conflict (id) do nothing;
+
+-- Authenticated users can upload their own files
+create policy "Auth users can upload PDFs"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'job-uploads'
+    and auth.uid() is not null
+  );
+
+-- Authenticated users can read their own files (needed for signed URL generation)
+create policy "Auth users can read own uploads"
+  on storage.objects for select
+  using (
+    bucket_id = 'job-uploads'
+    and auth.uid() is not null
+  );
+
+-- Allow deleting own uploads (optional cleanup)
+create policy "Auth users can delete own uploads"
+  on storage.objects for delete
+  using (
+    bucket_id = 'job-uploads'
+    and auth.uid() is not null
+  );

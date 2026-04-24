@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import {
   Upload,
   FileText,
@@ -104,35 +105,31 @@ export default function DashboardPage() {
     setActiveTab("audit");
 
     try {
-      // Step 1: Get presigned S3 URL from our server
       setPhase("uploading");
-      const urlRes = await fetch("/api/jobs/upload-url", { method: "POST" });
-      if (!urlRes.ok) {
-        const d = await urlRes.json();
-        throw new Error(d.error || "Failed to get upload URL");
-      }
-      const { presignedUrl, fileUrl } = await urlRes.json();
+      const supabase = createClient();
 
-      // Step 2: Stream file through our proxy to Opus (avoids CORS on files.opus.com)
-      const s3Res = await fetch("/api/jobs/proxy-upload", {
-        method: "POST",
-        body: file,
-        headers: {
-          "Content-Type": "application/pdf",
-          "x-upload-url": presignedUrl,
-        },
-      });
-      if (!s3Res.ok) {
-        const d = await s3Res.json().catch(() => ({}));
-        throw new Error(d.error || "File upload to storage failed");
+      // Step 1: Upload PDF directly to Supabase Storage from the browser
+      // Supabase has proper CORS headers — no 413 issue since it's not going through Vercel
+      const storagePath = `uploads/${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("job-uploads")
+        .upload(storagePath, file, { contentType: "application/pdf", upsert: false });
+      if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
+
+      // Step 2: Generate a short-lived signed URL (10 min — enough for our server to fetch it)
+      const { data: signedData, error: signedError } = await supabase.storage
+        .from("job-uploads")
+        .createSignedUrl(uploadData.path, 600);
+      if (signedError || !signedData?.signedUrl) {
+        throw new Error("Failed to create signed download URL");
       }
 
-      // Step 3: Initiate + execute the Opus job (no file, just the URL)
+      // Step 3: Pass the signed URL to our server — server downloads and streams to Opus, no size limit
       setPhase("processing");
       const res = await fetch("/api/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileUrl, filename: file.name }),
+        body: JSON.stringify({ signedUrl: signedData.signedUrl, filename: file.name }),
       });
 
       if (!res.ok) {
