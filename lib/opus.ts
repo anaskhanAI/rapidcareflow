@@ -113,15 +113,16 @@ export async function getJobResults(jobExecutionId: string): Promise<{
   });
   if (!res.ok) throw new Error(`Failed to get results: ${res.statusText}`);
   const data = await res.json();
-  const d = data.results?.data || {};
+  const schema = data?.results?.jobResultsPayloadSchema ?? {};
+  const val = (key: string) => schema[key]?.value;
   return {
-    cptCodes: d[OUTPUT_VARS.cptCodes] || [],
-    icd10Codes: d[OUTPUT_VARS.icd10Codes] || [],
-    emCodes: d[OUTPUT_VARS.emCodes] || [],
-    hcpcsCodes: d[OUTPUT_VARS.hcpcsCodes] || [],
-    modifiers: d[OUTPUT_VARS.modifiers] || [],
-    reasoning: d[OUTPUT_VARS.reasoning] || "",
-    confidenceScore: d[OUTPUT_VARS.confidenceScore] || 0,
+    cptCodes: val(OUTPUT_VARS.cptCodes) ?? [],
+    icd10Codes: val(OUTPUT_VARS.icd10Codes) ?? [],
+    emCodes: val(OUTPUT_VARS.emCodes) ?? [],
+    hcpcsCodes: val(OUTPUT_VARS.hcpcsCodes) ?? [],
+    modifiers: val(OUTPUT_VARS.modifiers) ?? [],
+    reasoning: val(OUTPUT_VARS.reasoning) ?? "",
+    confidenceScore: val(OUTPUT_VARS.confidenceScore) ?? 0,
   };
 }
 

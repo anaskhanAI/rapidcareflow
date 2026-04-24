@@ -27,21 +27,20 @@ export async function GET(
     if (!res.ok) throw new Error(`Failed to get results: ${res.statusText}`);
 
     const raw = await res.json();
-    console.log("[results] raw response:", JSON.stringify(raw, null, 2));
 
-    // Try both possible structures: data.results.data and data.results directly
-    const d = raw?.results?.data ?? raw?.results ?? raw?.data ?? {};
-    console.log("[results] extracted data keys:", Object.keys(d));
+    // Opus returns results at: results.jobResultsPayloadSchema.{variable_name}.value
+    const schema = raw?.results?.jobResultsPayloadSchema ?? {};
+
+    const val = (key: string) => schema[key]?.value;
 
     const results = {
-      cptCodes: d[OUTPUT_VARS.cptCodes] ?? [],
-      icd10Codes: d[OUTPUT_VARS.icd10Codes] ?? [],
-      emCodes: d[OUTPUT_VARS.emCodes] ?? [],
-      hcpcsCodes: d[OUTPUT_VARS.hcpcsCodes] ?? [],
-      modifiers: d[OUTPUT_VARS.modifiers] ?? [],
-      reasoning: d[OUTPUT_VARS.reasoning] ?? "",
-      confidenceScore: d[OUTPUT_VARS.confidenceScore] ?? 0,
-      _raw: raw, // include raw for debugging
+      cptCodes: val(OUTPUT_VARS.cptCodes) ?? [],
+      icd10Codes: val(OUTPUT_VARS.icd10Codes) ?? [],
+      emCodes: val(OUTPUT_VARS.emCodes) ?? [],
+      hcpcsCodes: val(OUTPUT_VARS.hcpcsCodes) ?? [],
+      modifiers: val(OUTPUT_VARS.modifiers) ?? [],
+      reasoning: val(OUTPUT_VARS.reasoning) ?? "",
+      confidenceScore: val(OUTPUT_VARS.confidenceScore) ?? 0,
     };
 
     // Persist to Supabase
