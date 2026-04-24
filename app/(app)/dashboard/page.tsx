@@ -99,19 +99,34 @@ export default function DashboardPage() {
 
   async function handleRunJob() {
     if (!file) return;
-    setPhase("uploading");
     setError(null);
     setActiveJob(null);
     setActiveTab("audit");
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      // Step 1: Get presigned S3 URL from our server
+      setPhase("uploading");
+      const urlRes = await fetch("/api/jobs/upload-url", { method: "POST" });
+      if (!urlRes.ok) {
+        const d = await urlRes.json();
+        throw new Error(d.error || "Failed to get upload URL");
+      }
+      const { presignedUrl, fileUrl } = await urlRes.json();
 
+      // Step 2: Upload file DIRECTLY to S3 from the browser (bypasses Vercel 4.5MB limit)
+      const s3Res = await fetch(presignedUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": "application/pdf" },
+      });
+      if (!s3Res.ok) throw new Error("File upload to storage failed");
+
+      // Step 3: Initiate + execute the Opus job (no file, just the URL)
       setPhase("processing");
       const res = await fetch("/api/jobs", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileUrl, filename: file.name }),
       });
 
       if (!res.ok) {
