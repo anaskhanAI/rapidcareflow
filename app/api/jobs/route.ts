@@ -8,6 +8,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
+  let step = "auth";
   try {
     const supabase = await createClient();
     const {
@@ -18,6 +19,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    step = "parse-form";
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
@@ -39,21 +41,26 @@ export async function POST(request: NextRequest) {
     const filename = file.name;
 
     // Step 1: Get presigned upload URL from Opus
+    step = "get-upload-url";
     const { presignedUrl, fileUrl } = await getUploadUrl();
 
     // Step 2: Upload file to S3
+    step = "upload-file";
     await uploadFile(presignedUrl, fileBuffer);
 
     // Step 3: Initiate job
+    step = "initiate-job";
     const jobExecutionId = await initiateJob(
       `Medical Coding — ${filename}`,
       `Automated ICD-10, CPT, HCPCS, E&M and Modifier coding for ${filename}`
     );
 
     // Step 4: Execute job
+    step = "execute-job";
     await executeJob(jobExecutionId, fileUrl, filename);
 
     // Step 5: Persist job to Supabase
+    step = "save-to-db";
     const { error: dbError } = await supabase.from("jobs").insert({
       user_id: user.id,
       user_email: user.email,
@@ -69,7 +76,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ jobExecutionId, filename }, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal server error";
-    console.error("[POST /api/jobs]", message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error(`[POST /api/jobs] step=${step}`, message);
+    return NextResponse.json({ error: `[${step}] ${message}` }, { status: 500 });
   }
 }
