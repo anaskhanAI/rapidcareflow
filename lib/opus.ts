@@ -123,16 +123,21 @@ export async function getJobResults(jobExecutionId: string): Promise<{
   });
   if (!res.ok) throw new Error(`Failed to get results: ${res.statusText}`);
   const data = await res.json();
-  const schema = data?.results?.jobResultsPayloadSchema ?? {};
-  const val = (key: string) => schema[key]?.value;
+  // Shape A: [{ "workflow_output_xxx": value }]  Shape B: { results: { jobResultsPayloadSchema: { key: { value } } } }
+  const flatObj: Record<string, unknown> = Array.isArray(data) ? (data[0] ?? {}) : {};
+  const schema: Record<string, { value: unknown }> = data?.results?.jobResultsPayloadSchema ?? {};
+  const val = (key: string): unknown => (key in flatObj ? flatObj[key] : schema[key]?.value);
+  const toStringArray = (v: unknown): string[] =>
+    Array.isArray(v) ? v.map(String) : [];
+  const rawScore = val(OUTPUT_VARS.confidenceScore);
   return {
-    cptCodes: val(OUTPUT_VARS.cptCodes) ?? [],
-    icd10Codes: val(OUTPUT_VARS.icd10Codes) ?? [],
-    emCodes: val(OUTPUT_VARS.emCodes) ?? [],
-    hcpcsCodes: val(OUTPUT_VARS.hcpcsCodes) ?? [],
-    modifiers: val(OUTPUT_VARS.modifiers) ?? [],
-    reasoning: val(OUTPUT_VARS.reasoning) ?? "",
-    confidenceScore: val(OUTPUT_VARS.confidenceScore) ?? 0,
+    cptCodes: toStringArray(val(OUTPUT_VARS.cptCodes)),
+    icd10Codes: toStringArray(val(OUTPUT_VARS.icd10Codes)),
+    emCodes: toStringArray(val(OUTPUT_VARS.emCodes)),
+    hcpcsCodes: toStringArray(val(OUTPUT_VARS.hcpcsCodes)),
+    modifiers: toStringArray(val(OUTPUT_VARS.modifiers)),
+    reasoning: (val(OUTPUT_VARS.reasoning) as string) ?? "",
+    confidenceScore: typeof rawScore === "number" ? rawScore : 0,
   };
 }
 

@@ -27,20 +27,37 @@ export async function GET(
     if (!res.ok) throw new Error(`Failed to get results: ${res.statusText}`);
 
     const raw = await res.json();
+    console.log("[results] raw Opus response:", JSON.stringify(raw).slice(0, 500));
 
-    // Opus returns results at: results.jobResultsPayloadSchema.{variable_name}.value
-    const schema = raw?.results?.jobResultsPayloadSchema ?? {};
+    // Opus can return two shapes:
+    //   Shape A (flat array): [{ "workflow_output_xxx": value, ... }]
+    //   Shape B (nested):     { results: { jobResultsPayloadSchema: { "key": { value: ... } } } }
+    const flatObj: Record<string, unknown> = Array.isArray(raw) ? (raw[0] ?? {}) : {};
+    const schema: Record<string, { value: unknown }> = raw?.results?.jobResultsPayloadSchema ?? {};
 
-    const val = (key: string) => schema[key]?.value;
+    const val = (key: string): unknown => {
+      // Shape A
+      if (key in flatObj) return flatObj[key];
+      // Shape B
+      return schema[key]?.value;
+    };
+
+    // Normalise code arrays to strings (Opus sometimes returns numbers e.g. [99443])
+    const toStringArray = (v: unknown): string[] =>
+      Array.isArray(v) ? v.map(String) : [];
+
+    const rawScore = val(OUTPUT_VARS.confidenceScore);
+    // Opus returns 0–1 float; keep as-is (ResultsPanel multiplies by 100)
+    const confidenceScore = typeof rawScore === "number" ? rawScore : 0;
 
     const results = {
-      cptCodes: val(OUTPUT_VARS.cptCodes) ?? [],
-      icd10Codes: val(OUTPUT_VARS.icd10Codes) ?? [],
-      emCodes: val(OUTPUT_VARS.emCodes) ?? [],
-      hcpcsCodes: val(OUTPUT_VARS.hcpcsCodes) ?? [],
-      modifiers: val(OUTPUT_VARS.modifiers) ?? [],
-      reasoning: val(OUTPUT_VARS.reasoning) ?? "",
-      confidenceScore: val(OUTPUT_VARS.confidenceScore) ?? 0,
+      cptCodes: toStringArray(val(OUTPUT_VARS.cptCodes)),
+      icd10Codes: toStringArray(val(OUTPUT_VARS.icd10Codes)),
+      emCodes: toStringArray(val(OUTPUT_VARS.emCodes)),
+      hcpcsCodes: toStringArray(val(OUTPUT_VARS.hcpcsCodes)),
+      modifiers: toStringArray(val(OUTPUT_VARS.modifiers)),
+      reasoning: (val(OUTPUT_VARS.reasoning) as string) ?? "",
+      confidenceScore,
     };
 
     // Persist to Supabase
