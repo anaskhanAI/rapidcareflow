@@ -42,7 +42,9 @@ interface JobCardProps {
 export default function JobCard({ job: initialJob }: JobCardProps) {
   const [job, setJob] = useState<Job>(initialJob);
   const [expanded, setExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState<"audit" | "results">("audit");
+  const [activeTab, setActiveTab] = useState<"audit" | "results">(
+    initialJob.status === "COMPLETED" && initialJob.outputs ? "results" : "audit"
+  );
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAt = useRef(new Date(initialJob.created_at).getTime());
 
@@ -214,20 +216,8 @@ export default function JobCard({ job: initialJob }: JobCardProps) {
       {/* Expanded content */}
       {expanded && (
         <div className="border-t border-border animate-fade-in">
-          {/* Tabs */}
+          {/* Tabs — Results first, Audit Log second */}
           <div className="flex border-b border-border px-4">
-            <button
-              onClick={() => setActiveTab("audit")}
-              className={cn(
-                "flex items-center gap-1.5 text-xs font-medium py-2.5 px-3 border-b-2 transition-colors -mb-px",
-                activeTab === "audit"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Terminal className="w-3 h-3" />
-              Audit Log
-            </button>
             {(job.status === "COMPLETED" || job.outputs) && (
               <button
                 onClick={() => setActiveTab("results")}
@@ -242,6 +232,18 @@ export default function JobCard({ job: initialJob }: JobCardProps) {
                 Results
               </button>
             )}
+            <button
+              onClick={() => setActiveTab("audit")}
+              className={cn(
+                "flex items-center gap-1.5 text-xs font-medium py-2.5 px-3 border-b-2 transition-colors -mb-px",
+                activeTab === "audit"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Terminal className="w-3 h-3" />
+              Audit Log
+            </button>
           </div>
 
           <div className="p-4">
