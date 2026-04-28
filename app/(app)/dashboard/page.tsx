@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import {
-  Upload, FileText, X, Play, Plus, Sparkles, ShieldCheck, Zap, ArrowRight,
+  Upload, FileText, X, Play, Plus, Zap, ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -166,28 +166,12 @@ export default function DashboardPage() {
     <div className="max-w-6xl mx-auto px-6 py-10">
       {/* Hero */}
       <div className="mb-8">
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="w-4 h-4 text-primary" />
-          <span className="text-xs font-medium text-primary uppercase tracking-widest">AI Medical Coding</span>
-        </div>
         <h1 className="text-3xl font-bold text-foreground tracking-tight mb-2">
           Clinical Code Extraction
         </h1>
         <p className="text-muted-foreground max-w-xl">
           Upload a scanned clinical PDF and our AI agents will validate CPT, ICD-10, HCPCS, E&amp;M codes and Modifiers in seconds.
         </p>
-        <div className="flex flex-wrap gap-2 mt-4">
-          {[
-            { icon: ShieldCheck, label: "HIPAA-aware processing" },
-            { icon: Zap, label: "Multi-agent validation" },
-            { icon: ArrowRight, label: "Full audit trail" },
-          ].map(({ icon: Icon, label }) => (
-            <span key={label} className="flex items-center gap-1.5 text-xs text-muted-foreground bg-surface border border-border px-3 py-1 rounded-full">
-              <Icon className="w-3 h-3 text-primary" />
-              {label}
-            </span>
-          ))}
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

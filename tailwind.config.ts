@@ -27,7 +27,7 @@ const config: Config = {
         danger: "#ef4444",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["Lexend", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       animation: {
