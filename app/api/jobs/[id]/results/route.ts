@@ -27,20 +27,25 @@ export async function GET(
     if (!res.ok) throw new Error(`Failed to get results: ${res.statusText}`);
 
     const raw = await res.json();
-    console.log("[results] raw Opus response:", JSON.stringify(raw).slice(0, 800));
 
-    // Official Opus response: { results: { data: { OUTPUT_KEY: value } } }
-    // Fallback shapes kept for resilience:
-    //   Shape B (legacy nested): results.jobResultsPayloadSchema.{key}.value
-    //   Shape C (flat array):    [{ OUTPUT_KEY: value }]
+    // Actual Opus API response shape (confirmed via debug endpoint):
+    //   { jobResultsPayloadSchema: { "workflow_output_xxx": { value: ..., type: ..., ... } } }
+    // Fallback shapes for resilience:
+    //   Shape B: { results: { jobResultsPayloadSchema: { ... } } }  (extra nesting)
+    //   Shape C: { results: { data: { OUTPUT_KEY: value } } }       (per docs)
+    //   Shape D: [{ OUTPUT_KEY: value }]                            (flat array / UI format)
+    const schema: Record<string, { value: unknown }> =
+      raw?.jobResultsPayloadSchema ??               // Shape A — confirmed real
+      raw?.results?.jobResultsPayloadSchema ??      // Shape B — extra nesting
+      {};
     const dataObj: Record<string, unknown> = raw?.results?.data ?? {};
     const flatObj: Record<string, unknown> = Array.isArray(raw) ? (raw[0] ?? {}) : {};
-    const schema: Record<string, { value: unknown }> = raw?.results?.jobResultsPayloadSchema ?? {};
 
     const val = (key: string): unknown => {
-      if (key in dataObj) return dataObj[key];          // Shape A — canonical
-      if (key in flatObj) return flatObj[key];           // Shape C — flat array
-      return schema[key]?.value;                         // Shape B — legacy
+      if (schema[key] !== undefined) return schema[key]?.value;  // Shape A / B
+      if (key in dataObj) return dataObj[key];                    // Shape C
+      if (key in flatObj) return flatObj[key];                    // Shape D
+      return undefined;
     };
 
     // Normalise code arrays to strings (Opus sometimes returns numbers e.g. [99443])
