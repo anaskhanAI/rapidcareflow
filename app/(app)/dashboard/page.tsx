@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Upload, FileText, X, Play, Plus, Zap, ArrowRight,
 } from "lucide-react";
@@ -46,6 +46,42 @@ export default function DashboardPage() {
   const pollRefs = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
 
   const selectedJob = jobs.find(j => j.jobExecutionId === selectedId) ?? null;
+
+  // Hydrate jobs from Supabase on mount so navigation doesn't wipe the view
+  useEffect(() => {
+    let cancelled = false;
+    async function hydrate() {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("jobs")
+        .select("job_execution_id, filename, status, outputs, created_at")
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (cancelled || !data || data.length === 0) return;
+
+      const hydrated: ActiveJob[] = data.map(row => ({
+        jobExecutionId: row.job_execution_id,
+        filename: row.filename,
+        startedAt: new Date(row.created_at).getTime(),
+        status: row.status as ActiveJob["status"],
+        outputs: row.outputs ?? null,
+        activeTab: row.status === "COMPLETED" ? "results" : "audit",
+      }));
+
+      setJobs(hydrated);
+      // Select the most recent job by default
+      setSelectedId(hydrated[0].jobExecutionId);
+
+      // Resume polling for any still-running jobs
+      hydrated
+        .filter(j => j.status === "IN PROGRESS")
+        .forEach(j => startPolling(j.jobExecutionId));
+    }
+    hydrate();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleFileSelect = useCallback((f: File) => {
     if (f.type !== "application/pdf") {
