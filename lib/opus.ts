@@ -123,10 +123,17 @@ export async function getJobResults(jobExecutionId: string): Promise<{
   });
   if (!res.ok) throw new Error(`Failed to get results: ${res.statusText}`);
   const data = await res.json();
-  // Shape A: [{ "workflow_output_xxx": value }]  Shape B: { results: { jobResultsPayloadSchema: { key: { value } } } }
+  // Shape A (canonical per docs): { results: { data: { OUTPUT_KEY: value } } }
+  // Shape B (legacy):             { results: { jobResultsPayloadSchema: { key: { value } } } }
+  // Shape C (flat array):         [{ OUTPUT_KEY: value }]
+  const dataObj: Record<string, unknown> = data?.results?.data ?? {};
   const flatObj: Record<string, unknown> = Array.isArray(data) ? (data[0] ?? {}) : {};
   const schema: Record<string, { value: unknown }> = data?.results?.jobResultsPayloadSchema ?? {};
-  const val = (key: string): unknown => (key in flatObj ? flatObj[key] : schema[key]?.value);
+  const val = (key: string): unknown => {
+    if (key in dataObj) return dataObj[key];
+    if (key in flatObj) return flatObj[key];
+    return schema[key]?.value;
+  };
   const toStringArray = (v: unknown): string[] =>
     Array.isArray(v) ? v.map(String) : [];
   const rawScore = val(OUTPUT_VARS.confidenceScore);

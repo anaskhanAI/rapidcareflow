@@ -27,19 +27,20 @@ export async function GET(
     if (!res.ok) throw new Error(`Failed to get results: ${res.statusText}`);
 
     const raw = await res.json();
-    console.log("[results] raw Opus response:", JSON.stringify(raw).slice(0, 500));
+    console.log("[results] raw Opus response:", JSON.stringify(raw).slice(0, 800));
 
-    // Opus can return two shapes:
-    //   Shape A (flat array): [{ "workflow_output_xxx": value, ... }]
-    //   Shape B (nested):     { results: { jobResultsPayloadSchema: { "key": { value: ... } } } }
+    // Official Opus response: { results: { data: { OUTPUT_KEY: value } } }
+    // Fallback shapes kept for resilience:
+    //   Shape B (legacy nested): results.jobResultsPayloadSchema.{key}.value
+    //   Shape C (flat array):    [{ OUTPUT_KEY: value }]
+    const dataObj: Record<string, unknown> = raw?.results?.data ?? {};
     const flatObj: Record<string, unknown> = Array.isArray(raw) ? (raw[0] ?? {}) : {};
     const schema: Record<string, { value: unknown }> = raw?.results?.jobResultsPayloadSchema ?? {};
 
     const val = (key: string): unknown => {
-      // Shape A
-      if (key in flatObj) return flatObj[key];
-      // Shape B
-      return schema[key]?.value;
+      if (key in dataObj) return dataObj[key];          // Shape A — canonical
+      if (key in flatObj) return flatObj[key];           // Shape C — flat array
+      return schema[key]?.value;                         // Shape B — legacy
     };
 
     // Normalise code arrays to strings (Opus sometimes returns numbers e.g. [99443])
