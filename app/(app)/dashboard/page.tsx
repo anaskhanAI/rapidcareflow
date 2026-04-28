@@ -170,7 +170,7 @@ export default function DashboardPage() {
           Clinical Code Extraction
         </h1>
         <p className="text-muted-foreground max-w-xl">
-          Upload a scanned clinical PDF and our AI agents will validate CPT, ICD-10, HCPCS, E&amp;M codes and Modifiers in seconds.
+          Upload a scanned clinical PDF and our AI agents will extract and validate E&amp;M, ICD-10, CPT, HCPCS, and Modifier codes in seconds.
         </p>
       </div>
 

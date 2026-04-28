@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { Loader2, FileHeart, Mail, Lock } from "lucide-react";
+import { Loader2, Mail, Lock } from "lucide-react";
+import OpusLogo from "@/components/OpusLogo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -58,9 +59,9 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="flex flex-col items-center mb-10">
           <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 mb-4">
-            <FileHeart className="w-7 h-7 text-primary" />
+            <OpusLogo className="w-6 text-primary" />
           </div>
-          <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+          <h1 className="text-2xl text-foreground tracking-tight">
             RapidCareFlow
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
