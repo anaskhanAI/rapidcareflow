@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { FileHeart, LayoutGrid, Briefcase, LogOut, ChevronDown } from "lucide-react";
+import { LayoutGrid, Briefcase, LogOut, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import OpusLogo from "@/components/OpusLogo";
 
 export default function Navbar({ userEmail }: { userEmail: string }) {
   const pathname = usePathname();
@@ -32,7 +33,7 @@ export default function Navbar({ userEmail }: { userEmail: string }) {
         {/* Logo */}
         <Link href="/dashboard" className="flex items-center gap-2.5 group">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-colors">
-            <FileHeart className="w-4 h-4 text-primary" />
+            <OpusLogo className="w-4 text-primary" />
           </div>
           <span className="font-semibold text-foreground text-sm tracking-tight">
             RapidCareFlow
