@@ -5,6 +5,7 @@
 @layer base {
   * {
     box-sizing: border-box;
+    font-weight: 275;
   }
 
   html {
@@ -14,10 +15,13 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Lexend', system-ui, sans-serif;
-    font-weight: 275;
     font-optical-sizing: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 275;
   }
 
   ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -28,6 +32,11 @@
   *:focus-visible {
     @apply outline-none ring-2 ring-primary ring-offset-0;
   }
+}
+
+/* Force Lexend 275 everywhere — overrides Tailwind font-weight utilities */
+* {
+  font-weight: 275 !important;
 }
 
 @layer utilities {
