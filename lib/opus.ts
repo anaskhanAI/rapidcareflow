@@ -26,7 +26,7 @@ export async function getUploadUrl(): Promise<{
   const res = await fetch(`${BASE_URL}/job/file/upload`, {
     method: "POST",
     headers: headers(),
-    body: JSON.stringify({ fileExtension: ".pdf", accessScope: "organization" }),
+    body: JSON.stringify({ fileExtension: ".pdf", accessScope: "workspace" }),
   });
   if (!res.ok) {
     let detail = res.statusText;
