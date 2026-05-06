@@ -182,6 +182,23 @@ export default function JobCard({ job: initialJob }: JobCardProps) {
                   codes validated
                 </span>
               )}
+              {job.outputs && (
+                <span className="text-xs text-muted-foreground">
+                  Confidence:{" "}
+                  <span
+                    className={cn(
+                      "font-semibold font-mono",
+                      job.outputs.confidenceScore >= 0.8
+                        ? "text-success"
+                        : job.outputs.confidenceScore >= 0.6
+                        ? "text-warning"
+                        : "text-danger"
+                    )}
+                  >
+                    {Math.round(job.outputs.confidenceScore * 100)}%
+                  </span>
+                </span>
+              )}
             </div>
           </div>
 

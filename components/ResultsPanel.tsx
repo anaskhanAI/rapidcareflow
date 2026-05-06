@@ -8,6 +8,7 @@ import {
   Tags,
   Pencil,
   Brain,
+  BarChart3,
 } from "lucide-react";
 
 interface CodingOutputs {
@@ -68,8 +69,45 @@ function CodeSection({ icon, label, codes, colorClass, dotClass }: CodeSectionPr
 }
 
 export default function ResultsPanel({ outputs }: ResultsPanelProps) {
+  const score = Math.round(outputs.confidenceScore * 100);
+
+  const scoreColor =
+    score >= 80
+      ? "text-success"
+      : score >= 60
+      ? "text-warning"
+      : "text-danger";
+
+  const scoreBg =
+    score >= 80
+      ? "bg-success"
+      : score >= 60
+      ? "bg-warning"
+      : "bg-danger";
+
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* Confidence Score */}
+      <div className="bg-surface-2 border border-border rounded-xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-3.5 h-3.5 text-muted-foreground" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Confidence Score
+            </p>
+          </div>
+          <span className={cn("text-2xl font-bold font-mono tabular-nums", scoreColor)}>
+            {score}%
+          </span>
+        </div>
+        <div className="h-1.5 bg-border rounded-full overflow-hidden">
+          <div
+            className={cn("h-full rounded-full transition-all duration-1000", scoreBg)}
+            style={{ width: `${score}%` }}
+          />
+        </div>
+      </div>
+
       {/* Code Sections */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <CodeSection
