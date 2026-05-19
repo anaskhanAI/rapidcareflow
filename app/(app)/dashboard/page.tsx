@@ -337,7 +337,7 @@ export default function DashboardPage() {
                     <p className="text-xs font-medium text-foreground truncate">{job.filename}</p>
                     <p className="text-[10px] text-muted-foreground mt-0.5">
                       {job.status === "IN PROGRESS" && "Processing..."}
-                      {job.status === "COMPLETED" && `${(job.outputs?.icd10Codes?.length ?? 0) + (job.outputs?.cptCodes?.length ?? 0)} codes · ${Math.round((job.outputs?.confidenceScore ?? 0) * 100)}% confidence`}
+                      {job.status === "COMPLETED" && `${(job.outputs?.icd10Codes?.length ?? 0) + (job.outputs?.cptCodes?.length ?? 0)} codes`}
                       {job.status === "FAILED" && "Failed — retry"}
                     </p>
                   </div>
