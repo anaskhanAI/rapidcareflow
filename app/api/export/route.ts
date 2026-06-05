@@ -65,14 +65,17 @@ export async function GET(request: NextRequest) {
 
     let rows = jobs ?? [];
 
-    // Optional 1-based inclusive range.
+    // Optional 1-based inclusive range. startOffset preserves the global case
+    // number so the "No." column stays stable regardless of the range chosen.
     const fromParam = request.nextUrl.searchParams.get("from");
     const toParam = request.nextUrl.searchParams.get("to");
     const from = fromParam ? parseInt(fromParam, 10) : null;
     const to = toParam ? parseInt(toParam, 10) : null;
+    let startOffset = 0;
     if ((from && from > 0) || (to && to > 0)) {
       const startIdx = from && from > 0 ? from - 1 : 0;
       const endIdx = to && to > 0 ? to : rows.length;
+      startOffset = startIdx;
       rows = rows.slice(startIdx, endIdx);
     }
 
@@ -105,7 +108,7 @@ export async function GET(request: NextRequest) {
         cpt.length + icd10.length + em.length + hcpcs.length + modifiers.length;
 
       sheet.addRow({
-        no: i + 1,
+        no: startOffset + i + 1,
         caseName: job.filename ?? "",
         dateRun: job.created_at ? formatDate(job.created_at) : "",
         duration: job.completed_at
