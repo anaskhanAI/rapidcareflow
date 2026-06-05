@@ -37,9 +37,10 @@ interface Job {
 
 interface JobCardProps {
   job: Job;
+  caseNumber?: number;
 }
 
-export default function JobCard({ job: initialJob }: JobCardProps) {
+export default function JobCard({ job: initialJob, caseNumber }: JobCardProps) {
   const [job, setJob] = useState<Job>(initialJob);
   const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<"audit" | "results">(
@@ -138,6 +139,14 @@ export default function JobCard({ job: initialJob }: JobCardProps) {
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
+              {caseNumber !== undefined && (
+                <span
+                  className="flex-shrink-0 text-[11px] font-mono font-semibold text-muted-foreground bg-surface-2 border border-border rounded-md px-1.5 py-0.5"
+                  title={`Case #${caseNumber} — use this number for the export range`}
+                >
+                  #{caseNumber}
+                </span>
+              )}
               <p className="text-sm font-medium text-foreground truncate max-w-xs">
                 {job.filename}
               </p>
