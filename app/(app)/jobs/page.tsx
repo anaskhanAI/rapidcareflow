@@ -118,8 +118,8 @@ export default async function JobsPage() {
 
       {jobs && jobs.length > 0 && (
         <div className="space-y-3">
-          {jobs.map((job) => (
-            <JobCard key={job.id} job={job} />
+          {jobs.map((job, i) => (
+            <JobCard key={job.id} job={job} caseNumber={jobs.length - i} />
           ))}
         </div>
       )}
