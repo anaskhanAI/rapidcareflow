@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import JobCard from "@/components/JobCard";
+import ExportButton from "@/components/ExportButton";
 import { Briefcase, Plus } from "lucide-react";
 import Link from "next/link";
 
@@ -38,13 +39,16 @@ export default async function JobsPage() {
           </p>
         </div>
 
-        <Link
-          href="/dashboard"
-          className="flex items-center gap-2 bg-primary hover:bg-primary-dark text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-lg shadow-primary/20"
-        >
-          <Plus className="w-4 h-4" />
-          New Job
-        </Link>
+        <div className="flex items-center gap-3">
+          <ExportButton />
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 bg-primary hover:bg-primary-dark text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-lg shadow-primary/20"
+          >
+            <Plus className="w-4 h-4" />
+            New Job
+          </Link>
+        </div>
       </div>
 
       {/* Summary stats */}
