@@ -1,20 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { cn, formatDate, formatDuration } from "@/lib/utils";
-import {
-  FileText,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-  ChevronDown,
-  ChevronUp,
-  Clock,
-  User,
-  Terminal,
-} from "lucide-react";
+import { FileText, ChevronDown, ChevronUp, Trash2, Loader2 } from "lucide-react";
 import StreamingAudit from "./StreamingAudit";
 import ResultsPanel from "./ResultsPanel";
+import { StatusPill, Meta, type JobStatus } from "./ui";
 
 interface Job {
   id: string;
@@ -40,8 +32,11 @@ interface JobCardProps {
 }
 
 export default function JobCard({ job: initialJob }: JobCardProps) {
+  const router = useRouter();
   const [job, setJob] = useState<Job>(initialJob);
   const [expanded, setExpanded] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleted, setDeleted] = useState(false);
   const [activeTab, setActiveTab] = useState<"audit" | "results">(
     initialJob.status === "COMPLETED" && initialJob.outputs ? "results" : "audit"
   );
@@ -87,25 +82,25 @@ export default function JobCard({ job: initialJob }: JobCardProps) {
     }
   }, [job.status, pollStatus]);
 
-  const statusIcon = {
-    "IN PROGRESS": (
-      <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
-    ),
-    COMPLETED: <CheckCircle2 className="w-3.5 h-3.5 text-success" />,
-    FAILED: <XCircle className="w-3.5 h-3.5 text-danger" />,
-  }[job.status];
+  async function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!confirm(`Delete "${job.filename}" from your run history?`)) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/jobs/${job.job_execution_id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error();
+      if (pollRef.current) clearInterval(pollRef.current);
+      setDeleted(true);
+      router.refresh();
+    } catch {
+      setDeleting(false);
+      alert("Failed to delete the run. Please try again.");
+    }
+  }
 
-  const statusLabel = {
-    "IN PROGRESS": "Processing",
-    COMPLETED: "Completed",
-    FAILED: "Failed",
-  }[job.status];
-
-  const statusColor = {
-    "IN PROGRESS": "text-primary bg-primary/10 border-primary/20",
-    COMPLETED: "text-success bg-success/10 border-success/20",
-    FAILED: "text-danger bg-danger/10 border-danger/20",
-  }[job.status];
+  if (deleted) return null;
 
   const totalCodes = job.outputs
     ? job.outputs.cptCodes.length +
@@ -117,115 +112,110 @@ export default function JobCard({ job: initialJob }: JobCardProps) {
 
   return (
     <div
-      className={cn(
-        "bg-surface border rounded-2xl overflow-hidden transition-all duration-300",
+      className="bg-white border border-line rounded-[8px] overflow-hidden transition-colors hover:border-line-strong"
+      style={
         job.status === "IN PROGRESS"
-          ? "border-primary/30 shadow-lg shadow-primary/5"
-          : "border-border"
-      )}
+          ? { borderLeft: "3px solid var(--color-accent)" }
+          : undefined
+      }
     >
       {/* Card Header */}
       <div
-        className="p-4 cursor-pointer hover:bg-surface-2/40 transition-colors"
+        className="px-4 py-3.5 cursor-pointer"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-start gap-3">
           {/* File icon */}
-          <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-surface-2 border border-border flex items-center justify-center mt-0.5">
-            <FileText className="w-4 h-4 text-muted-foreground" />
+          <div className="shrink-0 w-8 h-8 rounded-[6px] bg-surface border border-line flex items-center justify-center mt-0.5">
+            <FileText size={13} strokeWidth={1.75} className="text-ink-faint" />
           </div>
 
           {/* Info */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm font-medium text-foreground truncate max-w-xs">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <p className="text-[13px] font-medium text-ink truncate max-w-xs">
                 {job.filename}
               </p>
-              <span
-                className={cn(
-                  "flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border",
-                  statusColor
-                )}
-              >
-                {statusIcon}
-                {statusLabel}
-              </span>
+              <StatusPill status={job.status as JobStatus} />
               {job.status === "IN PROGRESS" && (
-                <span className="text-xs text-muted animate-pulse">
+                <Meta className="animate-pulse">
                   {formatDuration(job.created_at)} elapsed
-                </span>
+                </Meta>
               )}
             </div>
 
-            <div className="flex items-center gap-4 mt-1.5 flex-wrap">
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <User className="w-3 h-3" />
+            <div className="flex items-center gap-4 mt-2 flex-wrap">
+              <Meta className="normal-case tracking-[0.06em]">
                 {job.user_email}
-              </span>
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock className="w-3 h-3" />
-                {formatDate(job.created_at)}
-              </span>
+              </Meta>
+              <Meta>{formatDate(job.created_at)}</Meta>
               {job.completed_at && (
-                <span className="text-xs text-muted-foreground">
-                  Duration:{" "}
-                  <span className="text-foreground-dim font-mono">
-                    {formatDuration(job.created_at, job.completed_at)}
-                  </span>
-                </span>
+                <Meta>
+                  Duration {formatDuration(job.created_at, job.completed_at)}
+                </Meta>
               )}
               {totalCodes !== null && (
-                <span className="text-xs text-muted-foreground">
-                  <span className="text-primary font-semibold font-mono">
-                    {totalCodes}
-                  </span>{" "}
-                  codes validated
-                </span>
+                <Meta>
+                  <span className="text-accent">{totalCodes}</span> codes
+                  validated
+                </Meta>
               )}
             </div>
           </div>
 
-          {/* Expand toggle */}
-          <button className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
-            {expanded ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
-          </button>
+          {/* Delete + expand toggle */}
+          <div className="flex items-center gap-1 shrink-0 pt-0.5">
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              title="Delete run"
+              className="p-1.5 rounded-[4px] text-ink-faint hover:text-bad hover:bg-bad-soft transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {deleting ? (
+                <Loader2 size={13} strokeWidth={1.75} className="animate-spin" />
+              ) : (
+                <Trash2 size={13} strokeWidth={1.75} />
+              )}
+            </button>
+            <span className="text-ink-faint p-1.5">
+              {expanded ? (
+                <ChevronUp size={14} strokeWidth={1.75} />
+              ) : (
+                <ChevronDown size={14} strokeWidth={1.75} />
+              )}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Expanded content */}
       {expanded && (
-        <div className="border-t border-border animate-fade-in">
+        <div className="border-t border-line animate-reveal">
           {/* Tabs — Results first, Audit Log second */}
-          <div className="flex border-b border-border px-4">
+          <div className="flex gap-7 px-4 pt-3 border-b border-line bg-surface">
             {(job.status === "COMPLETED" || job.outputs) && (
               <button
                 onClick={() => setActiveTab("results")}
                 className={cn(
-                  "flex items-center gap-1.5 text-xs font-medium py-2.5 px-3 border-b-2 transition-colors -mb-px",
+                  "font-mono text-[11px] uppercase tracking-[0.18em] whitespace-nowrap pb-2.5 border-b transition-colors cursor-pointer -mb-px",
                   activeTab === "results"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
+                    ? "text-accent border-accent"
+                    : "text-ink-faint border-transparent hover:text-ink-dim"
                 )}
               >
-                <CheckCircle2 className="w-3 h-3" />
                 Results
               </button>
             )}
             <button
               onClick={() => setActiveTab("audit")}
               className={cn(
-                "flex items-center gap-1.5 text-xs font-medium py-2.5 px-3 border-b-2 transition-colors -mb-px",
+                "font-mono text-[11px] uppercase tracking-[0.18em] whitespace-nowrap pb-2.5 border-b transition-colors cursor-pointer -mb-px",
                 activeTab === "audit"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  ? "text-accent border-accent"
+                  : "text-ink-faint border-transparent hover:text-ink-dim"
               )}
             >
-              <Terminal className="w-3 h-3" />
-              Audit Log
+              Audit log
             </button>
           </div>
 

@@ -1,15 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import {
-  FileCode2,
-  Stethoscope,
-  Package,
-  Tags,
-  Pencil,
-  Brain,
-} from "lucide-react";
-
 interface CodingOutputs {
   cptCodes: string[];
   icd10Codes: string[];
@@ -24,40 +14,28 @@ interface ResultsPanelProps {
   outputs: CodingOutputs;
 }
 
-interface CodeSectionProps {
-  icon: React.ReactNode;
-  label: string;
-  codes: string[];
-  colorClass: string;
-  dotClass: string;
-}
-
-function CodeSection({ icon, label, codes, colorClass, dotClass }: CodeSectionProps) {
+function CodeSection({ label, codes }: { label: string; codes: string[] }) {
   return (
-    <div className="bg-surface-2 border border-border rounded-xl p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <span className={cn("text-xs", colorClass)}>{icon}</span>
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+    <div className="bg-surface border border-line rounded-[8px] p-4">
+      <div className="flex items-center justify-between mb-3">
+        <p className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-ink-faint">
           {label}
         </p>
-        <span className={cn("ml-auto text-xs font-mono font-semibold", colorClass)}>
+        <span className="font-mono text-[10.5px] text-accent">
           {codes.length}
         </span>
       </div>
       {codes.length === 0 ? (
-        <p className="text-xs text-muted italic">No codes identified</p>
+        <p className="text-[11.5px] text-ink-faint italic">
+          No codes identified
+        </p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {codes.map((code, i) => (
             <span
               key={i}
-              className={cn(
-                "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-mono font-medium border",
-                colorClass,
-                "bg-current/5 border-current/20"
-              )}
+              className="inline-flex items-center px-2 py-1 rounded-[4px] font-mono text-[11px] text-ink bg-white border border-line"
             >
-              <span className={cn("w-1.5 h-1.5 rounded-full", dotClass)} />
               {code}
             </span>
           ))}
@@ -69,55 +47,25 @@ function CodeSection({ icon, label, codes, colorClass, dotClass }: CodeSectionPr
 
 export default function ResultsPanel({ outputs }: ResultsPanelProps) {
   return (
-    <div className="space-y-4 animate-fade-in">
+    <div className="space-y-3 animate-reveal">
       {/* Code Sections */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <CodeSection
-          icon={<FileCode2 className="w-3.5 h-3.5" />}
-          label="CPT Codes"
-          codes={outputs.cptCodes}
-          colorClass="text-primary"
-          dotClass="bg-primary"
-        />
-        <CodeSection
-          icon={<Stethoscope className="w-3.5 h-3.5" />}
-          label="ICD-10 Codes"
-          codes={outputs.icd10Codes}
-          colorClass="text-accent"
-          dotClass="bg-accent"
-        />
-        <CodeSection
-          icon={<Pencil className="w-3.5 h-3.5" />}
-          label="E&M Codes"
-          codes={outputs.emCodes}
-          colorClass="text-warning"
-          dotClass="bg-warning"
-        />
-        <CodeSection
-          icon={<Package className="w-3.5 h-3.5" />}
-          label="HCPCS Codes"
-          codes={outputs.hcpcsCodes}
-          colorClass="text-success"
-          dotClass="bg-success"
-        />
-        <CodeSection
-          icon={<Tags className="w-3.5 h-3.5" />}
-          label="Modifiers"
-          codes={outputs.modifiers}
-          colorClass="text-orange-400"
-          dotClass="bg-orange-400"
-        />
+        <CodeSection label="CPT codes" codes={outputs.cptCodes} />
+        <CodeSection label="ICD-10 codes" codes={outputs.icd10Codes} />
+        <CodeSection label="E&M codes" codes={outputs.emCodes} />
+        <CodeSection label="HCPCS codes" codes={outputs.hcpcsCodes} />
+        <CodeSection label="Modifiers" codes={outputs.modifiers} />
       </div>
 
       {/* Reasoning */}
-      <div className="bg-surface-2 border border-border rounded-xl p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Brain className="w-3.5 h-3.5 text-muted-foreground" />
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Validated Reasoning
-          </p>
-        </div>
-        <p className="text-sm text-foreground-dim leading-relaxed">
+      <div
+        className="bg-white border border-line rounded-[8px] p-4"
+        style={{ borderLeft: "3px solid var(--color-accent)" }}
+      >
+        <p className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-ink-faint mb-3">
+          Validated reasoning
+        </p>
+        <p className="text-[13.5px] leading-[1.75] text-ink-dim">
           {outputs.reasoning || "No reasoning provided."}
         </p>
       </div>

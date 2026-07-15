@@ -1,49 +1,98 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  * {
-    box-sizing: border-box;
-    font-weight: 275;
+@theme {
+  /* Surfaces */
+  --color-stage: #ffffff;
+  --color-surface: #fafafa;
+  --color-raised: #f1f1f3;
+  --color-line: rgba(14, 14, 16, 0.09);
+  --color-line-strong: rgba(14, 14, 16, 0.18);
+
+  /* Ink */
+  --color-ink: #0e0e10;
+  --color-ink-dim: #55555c;
+  --color-ink-faint: #8c8c94;
+
+  /* Accent */
+  --color-accent: #0426cd;
+  --color-accent-hot: #1d3df0;
+  --color-accent-soft: rgba(4, 38, 205, 0.06);
+
+  /* Status */
+  --color-ok: #0f7b3d;
+  --color-ok-soft: rgba(15, 123, 61, 0.07);
+  --color-warn: #9a6b00;
+  --color-bad: #c0341d;
+  --color-bad-soft: rgba(192, 52, 29, 0.06);
+
+  /* Fonts */
+  --font-display: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", monospace;
+
+  /* Motion */
+  --animate-reveal: reveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-slide-in: slide-in 0.3s ease-out both;
+
+  @keyframes reveal {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateX(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+}
+
+@layer base {
   html {
     scroll-behavior: smooth;
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Lexend', system-ui, sans-serif;
-    font-optical-sizing: auto;
+    background: var(--color-stage);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: 14px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-weight: 275;
+  ::selection {
+    background: var(--color-accent);
+    color: #ffffff;
   }
 
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { @apply bg-surface; }
-  ::-webkit-scrollbar-thumb { background: #2a2f45; border-radius: 2px; }
-  ::-webkit-scrollbar-thumb:hover { @apply bg-primary; }
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line-strong);
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-faint);
+  }
 
   *:focus-visible {
-    @apply outline-none ring-2 ring-primary ring-offset-0;
-  }
-}
-
-/* Force Lexend 275 everywhere — overrides Tailwind font-weight utilities */
-* {
-  font-weight: 275 !important;
-}
-
-@layer utilities {
-  .bg-gradient-mesh {
-    background-image:
-      radial-gradient(at 40% 20%, hsla(240,100%,70%,0.08) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, hsla(260,100%,70%,0.06) 0px, transparent 50%),
-      radial-gradient(at 0% 50%, hsla(220,100%,70%,0.05) 0px, transparent 50%);
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
   }
 }

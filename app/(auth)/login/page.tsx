@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { Loader2, Mail, Lock } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import OpusLogo from "@/components/OpusLogo";
+import { Btn } from "@/components/ui";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -49,95 +50,92 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background bg-gradient-mesh px-4">
-      {/* Background glow */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px]" />
-      </div>
-
-      <div className="relative w-full max-w-md animate-slide-up">
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-10">
-          <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 mb-4">
-            <OpusLogo className="w-6 text-primary" />
-          </div>
-          <h1 className="text-2xl text-foreground tracking-tight">
+    <div className="min-h-screen flex items-center justify-center bg-stage px-4">
+      <div className="w-full max-w-sm animate-reveal">
+        {/* Brand */}
+        <div className="flex flex-col items-center mb-10 text-center">
+          <OpusLogo className="w-8 text-accent mb-5" />
+          <p className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-accent mb-2">
             RapidCareFlow
+          </p>
+          <h1 className="font-display font-medium text-[1.9rem] leading-[1.05] tracking-[-0.025em] text-ink">
+            {mode === "login" ? (
+              <>
+                Sign in.{" "}
+                <span className="text-ink-faint font-normal">
+                  Welcome back.
+                </span>
+              </>
+            ) : (
+              <>
+                Create account.{" "}
+                <span className="text-ink-faint font-normal">
+                  Start coding.
+                </span>
+              </>
+            )}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            AI-powered medical coding platform
+          <p className="text-[13.5px] leading-[1.75] text-ink-dim mt-3">
+            AI-powered clinical coding platform
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-surface border border-border rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-lg font-semibold text-foreground mb-1">
-            {mode === "login" ? "Sign in" : "Create account"}
-          </h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            {mode === "login"
-              ? "Welcome back. Enter your credentials to continue."
-              : "Set up your access to start coding."}
-          </p>
-
+        <div className="bg-white border border-line rounded-[8px] px-6 py-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">
+              <label className="block font-mono text-[9.5px] uppercase tracking-[0.22em] text-ink-faint mb-2">
                 Email
               </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@hospital.com"
-                  className="w-full bg-surface-2 border border-border text-foreground placeholder:text-muted rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors"
-                />
-              </div>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@hospital.com"
+                className="w-full bg-raised border border-line-strong focus:border-accent rounded-[6px] px-4 py-2.5 text-[13.5px] text-ink placeholder:text-ink-faint outline-none transition-colors"
+              />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">
+              <label className="block font-mono text-[9.5px] uppercase tracking-[0.22em] text-ink-faint mb-2">
                 Password
               </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-surface-2 border border-border text-foreground placeholder:text-muted rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors"
-                />
-              </div>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-raised border border-line-strong focus:border-accent rounded-[6px] px-4 py-2.5 text-[13.5px] text-ink placeholder:text-ink-faint outline-none transition-colors"
+              />
             </div>
 
             {error && (
-              <p className="text-xs text-danger bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
+              <p className="text-[12px] leading-[1.6] text-bad bg-bad-soft border border-bad/20 rounded-[6px] px-3 py-2">
                 {error}
               </p>
             )}
             {success && (
-              <p className="text-xs text-success bg-success/10 border border-success/20 rounded-lg px-3 py-2">
+              <p className="text-[12px] leading-[1.6] text-ok bg-ok-soft border border-ok/20 rounded-[6px] px-3 py-2">
                 {success}
               </p>
             )}
 
-            <button
+            <Btn
               type="submit"
+              variant="primary"
+              size="lg"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium py-2.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm mt-2"
+              className="w-full mt-1"
             >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              {loading && <Loader2 size={14} className="animate-spin" />}
               {mode === "login" ? "Sign in" : "Create account"}
-            </button>
+            </Btn>
           </form>
 
-          <div className="mt-5 pt-5 border-t border-border text-center">
-            <p className="text-xs text-muted-foreground">
+          <div className="mt-5 pt-5 border-t border-line text-center">
+            <p className="text-[12px] text-ink-dim">
               {mode === "login"
                 ? "Don't have an account?"
                 : "Already have an account?"}{" "}
@@ -147,7 +145,7 @@ export default function LoginPage() {
                   setError(null);
                   setSuccess(null);
                 }}
-                className="text-primary hover:text-accent transition-colors font-medium"
+                className="text-accent hover:text-accent-hot transition-colors font-medium cursor-pointer"
               >
                 {mode === "login" ? "Sign up" : "Sign in"}
               </button>
@@ -155,9 +153,8 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="text-center text-xs text-muted mt-6">
-          Powered by{" "}
-          <span className="text-primary font-medium">Opus AI Platform</span>
+        <p className="text-center font-mono text-[9.5px] uppercase tracking-[0.12em] text-ink-faint mt-6">
+          Powered by <span className="text-accent">Opus AI Platform</span>
         </p>
       </div>
     </div>

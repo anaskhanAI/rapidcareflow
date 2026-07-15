@@ -28,6 +28,10 @@ create policy "Users update own jobs"
   on public.jobs for update
   using (auth.uid() = user_id);
 
+create policy "Users delete own jobs"
+  on public.jobs for delete
+  using (auth.uid() = user_id);
+
 -- Index for faster queries
 create index if not exists jobs_user_id_idx on public.jobs(user_id);
 create index if not exists jobs_created_at_idx on public.jobs(created_at desc);

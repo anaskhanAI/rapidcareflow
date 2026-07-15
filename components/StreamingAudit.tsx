@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Matches actual workflow order: E&M → ICD-10 → CPT → HCPCS/J-codes → Modifiers → scoring
@@ -36,7 +35,7 @@ interface StreamingAuditProps {
 export default function StreamingAudit({ jobExecutionId, status, startedAt }: StreamingAuditProps) {
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [elapsed, setElapsed] = useState(0);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const logRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const auditPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const seenTimestamps = useRef<Set<string>>(new Set());
@@ -113,9 +112,10 @@ export default function StreamingAudit({ jobExecutionId, status, startedAt }: St
     }
   }, [status]);
 
-  // Auto-scroll
+  // Auto-scroll the log container only — never the page
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = logRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [entries]);
 
   const fmt = (iso: string) =>
@@ -133,32 +133,38 @@ export default function StreamingAudit({ jobExecutionId, status, startedAt }: St
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
           {status === "IN PROGRESS" && (
-            <span className="flex items-center gap-1.5 text-xs text-primary font-medium">
-              <Loader2 className="w-3 h-3 animate-spin" /> Processing
+            <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-accent">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+              Processing
             </span>
           )}
           {status === "COMPLETED" && (
-            <span className="flex items-center gap-1.5 text-xs text-success font-medium">
-              <CheckCircle2 className="w-3 h-3" /> Complete
+            <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ok">
+              <span className="w-1.5 h-1.5 rounded-full bg-ok" />
+              Complete
             </span>
           )}
           {status === "FAILED" && (
-            <span className="flex items-center gap-1.5 text-xs text-danger font-medium">
-              <XCircle className="w-3 h-3" /> Failed
+            <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-bad">
+              <span className="w-1.5 h-1.5 rounded-full bg-bad" />
+              Failed
             </span>
           )}
         </div>
         {status === "IN PROGRESS" && (
-          <span className="text-xs text-muted font-mono tabular-nums">
+          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-faint tabular-nums">
             {formatElapsed(elapsed)}
           </span>
         )}
       </div>
 
-      {/* Terminal window */}
-      <div className="flex-1 bg-background border border-border rounded-xl overflow-y-auto p-4 min-h-[300px] max-h-[420px] font-mono text-xs space-y-1.5 scroll-smooth">
+      {/* Log window */}
+      <div
+        ref={logRef}
+        className="flex-1 bg-surface border border-line rounded-[8px] overflow-y-auto p-4 min-h-[300px] max-h-[420px] font-mono text-[11px] leading-relaxed space-y-1.5"
+      >
         {entries.length === 0 && (
-          <p className="text-muted animate-pulse">Initializing workflow engine...</p>
+          <p className="text-ink-faint animate-pulse">Initializing workflow engine...</p>
         )}
         {entries.map((entry, i) => {
           const isLatest = i === entries.length - 1 && status === "IN PROGRESS";
@@ -167,35 +173,32 @@ export default function StreamingAudit({ jobExecutionId, status, startedAt }: St
               key={entry.id}
               className={cn(
                 "flex gap-2.5 items-start animate-slide-in",
-                isLatest ? "text-foreground" : "text-muted-foreground/70"
+                isLatest ? "text-ink" : "text-ink-dim"
               )}
             >
-              <span className="shrink-0 text-muted/60 text-[10px] tabular-nums pt-0.5 w-[72px]">
+              <span className="shrink-0 text-ink-faint text-[9.5px] tabular-nums pt-0.5 w-[64px]">
                 {fmt(entry.timestamp)}
               </span>
               <span className={cn(
-                "shrink-0 text-[10px] pt-[3px] font-semibold",
-                entry.type === "staged" && "text-muted",
-                entry.type === "system" && "text-accent",
-                entry.type === "opus" && "text-primary",
-                isLatest && "text-primary"
+                "shrink-0 text-[10px] pt-px",
+                entry.type === "staged" && "text-ink-faint",
+                (entry.type === "system" || entry.type === "opus") && "text-accent",
+                isLatest && "text-accent"
               )}>
                 {entry.type === "staged" ? "›" : entry.type === "system" ? "◆" : "⬡"}
               </span>
               <span className={cn(
-                entry.type === "system" && "text-accent",
-                entry.type === "opus" && "text-primary",
-                isLatest && "text-foreground font-medium"
+                (entry.type === "system" || entry.type === "opus") && "text-accent",
+                isLatest && "text-ink font-medium"
               )}>
                 {entry.text}
                 {isLatest && (
-                  <span className="inline-block w-1.5 h-3.5 bg-primary ml-0.5 animate-pulse align-middle" />
+                  <span className="inline-block w-1.5 h-3 bg-accent ml-1 animate-pulse align-middle" />
                 )}
               </span>
             </div>
           );
         })}
-        <div ref={bottomRef} />
       </div>
     </div>
   );

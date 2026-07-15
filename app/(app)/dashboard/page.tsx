@@ -1,14 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Upload, FileText, X, Play, Plus, Zap, ArrowRight,
-} from "lucide-react";
+import { Upload, FileText, X, Plus, ArrowRight, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import StreamingAudit from "@/components/StreamingAudit";
 import ResultsPanel from "@/components/ResultsPanel";
 import Link from "next/link";
+import { Btn, PageHeader, SectionDivider, StatusPill, Meta } from "@/components/ui";
 
 interface JobOutputs {
   cptCodes: string[];
@@ -176,7 +175,7 @@ export default function DashboardPage() {
         activeTab: "audit",
       };
 
-      setJobs(prev => [...prev, newJob]);
+      setJobs(prev => [newJob, ...prev]);
       setSelectedId(jobExecutionId);
       startPolling(jobExecutionId);
 
@@ -190,6 +189,29 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleDeleteJob(e: React.MouseEvent, jobExecutionId: string, filename: string) {
+    e.stopPropagation();
+    if (!confirm(`Delete "${filename}" from your run history?`)) return;
+    try {
+      const res = await fetch(`/api/jobs/${jobExecutionId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+    } catch {
+      setUploadError("Failed to delete the run. Please try again.");
+      return;
+    }
+    // Stop polling and drop from the queue
+    const interval = pollRefs.current.get(jobExecutionId);
+    if (interval) {
+      clearInterval(interval);
+      pollRefs.current.delete(jobExecutionId);
+    }
+    const remaining = jobs.filter(j => j.jobExecutionId !== jobExecutionId);
+    setJobs(remaining);
+    if (selectedId === jobExecutionId) {
+      setSelectedId(remaining[0]?.jobExecutionId ?? null);
+    }
+  }
+
   function setJobTab(jobExecutionId: string, tab: "audit" | "results") {
     setJobs(prev => prev.map(j =>
       j.jobExecutionId === jobExecutionId ? { ...j, activeTab: tab } : j
@@ -199,22 +221,27 @@ export default function DashboardPage() {
   const isUploading = uploadPhase === "uploading" || uploadPhase === "starting";
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
-      {/* Hero */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground tracking-tight mb-2">
-          Clinical Code Extraction
-        </h1>
-        <p className="text-muted-foreground max-w-xl">
-          Upload a scanned clinical PDF and our AI agents will extract and validate E&amp;M, ICD-10, CPT, HCPCS, and Modifier codes in seconds.
-        </p>
-      </div>
+    <div className="px-6 md:px-12 pt-9 md:pt-12 pb-12 max-w-6xl mx-auto">
+      <PageHeader
+        eyebrow="Coding console"
+        title={
+          <>
+            Clinical code extraction.{" "}
+            <span className="text-ink-faint font-normal">
+              Upload, run, review.
+            </span>
+          </>
+        }
+        subtitle="Upload a scanned clinical PDF and our AI agents will extract and validate E&M, ICD-10, CPT, HCPCS, and Modifier codes in seconds."
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* ── Left: Upload panel ── */}
-        <div className="space-y-4">
-          <div className="bg-surface border border-border rounded-2xl p-6">
-            <h2 className="text-sm font-semibold text-foreground mb-4">Upload Clinical Document</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* ── Left: Upload panel + session queue ── */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white border border-line rounded-[8px] p-5">
+            <p className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-ink-faint mb-4">
+              Upload clinical document
+            </p>
 
             {/* Drop zone */}
             <div
@@ -223,13 +250,13 @@ export default function DashboardPage() {
               onDrop={onDrop}
               onClick={() => !file && !isUploading && fileInputRef.current?.click()}
               className={cn(
-                "relative border-2 border-dashed rounded-xl transition-all duration-200 flex flex-col items-center justify-center text-center",
-                file ? "p-4 cursor-default" : "p-12 cursor-pointer",
+                "relative border border-dashed rounded-[6px] transition-colors flex flex-col items-center justify-center text-center",
+                file ? "p-4 cursor-default" : "p-10 cursor-pointer",
                 dragging
-                  ? "border-primary bg-primary/5"
+                  ? "border-accent bg-accent-soft"
                   : file
-                  ? "border-border bg-surface-2"
-                  : "border-border hover:border-primary/50 hover:bg-surface-2/50"
+                  ? "border-line bg-surface"
+                  : "border-line-strong bg-surface hover:border-accent"
               )}
             >
               <input
@@ -242,30 +269,33 @@ export default function DashboardPage() {
 
               {!file ? (
                 <>
-                  <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4">
-                    <Upload className="w-6 h-6 text-primary" />
-                  </div>
-                  <p className="text-sm font-medium text-foreground mb-1">Drop your PDF here</p>
-                  <p className="text-xs text-muted-foreground">or click to browse — up to 50 MB</p>
-                  <p className="text-xs text-muted mt-2">Clinical notes, discharge summaries, op reports</p>
+                  <Upload size={20} strokeWidth={1.5} className="text-ink-faint mb-4" />
+                  <p className="text-[13.5px] font-medium text-ink mb-1">
+                    Drop your PDF here
+                  </p>
+                  <p className="text-[12px] text-ink-dim">
+                    or click to browse
+                  </p>
+                  <Meta className="mt-3">PDF · max 50 MB</Meta>
+                  <Meta className="mt-1">Clinical notes · discharge summaries · op reports</Meta>
                 </>
               ) : (
                 <div className="flex items-center gap-3 w-full">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-5 h-5 text-primary" />
+                  <div className="w-9 h-9 rounded-[6px] bg-accent-soft border border-accent/20 flex items-center justify-center shrink-0">
+                    <FileText size={15} strokeWidth={1.75} className="text-accent" />
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-[13px] font-medium text-ink truncate">{file.name}</p>
+                    <Meta className="mt-1 block">
                       {(file.size / 1024 / 1024).toFixed(2)} MB · PDF
-                    </p>
+                    </Meta>
                   </div>
                   {!isUploading && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setFile(null); setUploadError(null); }}
-                      className="text-muted hover:text-danger transition-colors p-1"
+                      className="text-ink-faint hover:text-bad transition-colors p-1 cursor-pointer"
                     >
-                      <X className="w-4 h-4" />
+                      <X size={14} strokeWidth={1.75} />
                     </button>
                   )}
                 </div>
@@ -273,152 +303,155 @@ export default function DashboardPage() {
             </div>
 
             {uploadError && (
-              <p className="mt-3 text-xs text-danger bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
+              <p className="mt-3 text-[12px] leading-[1.6] text-bad bg-bad-soft border border-bad/20 rounded-[6px] px-3 py-2">
                 {uploadError}
               </p>
             )}
 
-            {/* Actions */}
-            <div className="flex gap-3 mt-4">
-              <button
-                onClick={handleRunJob}
-                disabled={!file || isUploading}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-all",
-                  file && !isUploading
-                    ? "bg-primary hover:bg-primary-dark text-white shadow-lg shadow-primary/20"
-                    : "bg-surface-2 text-muted cursor-not-allowed border border-border"
-                )}
-              >
-                {isUploading ? (
-                  <>
-                    <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    {uploadPhase === "uploading" ? "Uploading..." : "Starting..."}
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-4 h-4" />
-                    Run Coding Job
-                  </>
-                )}
-              </button>
-            </div>
+            <Btn
+              variant="primary"
+              size="lg"
+              onClick={handleRunJob}
+              disabled={!file || isUploading}
+              className="w-full mt-4"
+            >
+              {isUploading ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  {uploadPhase === "uploading" ? "Uploading…" : "Starting…"}
+                </>
+              ) : (
+                <>Run coding job</>
+              )}
+            </Btn>
           </div>
 
-          {/* Active jobs sidebar list */}
+          {/* Session queue */}
           {jobs.length > 0 && (
-            <div className="bg-surface border border-border rounded-2xl p-4 space-y-2">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Active Jobs ({jobs.length})
-                </p>
-                <Link href="/jobs" className="text-xs text-primary hover:text-accent transition-colors font-medium flex items-center gap-1">
-                  View all <ArrowRight className="w-3 h-3" />
-                </Link>
-              </div>
-              {jobs.map(job => (
-                <button
-                  key={job.jobExecutionId}
-                  onClick={() => setSelectedId(job.jobExecutionId)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all",
-                    selectedId === job.jobExecutionId
-                      ? "bg-primary/10 border border-primary/20"
-                      : "bg-surface-2 border border-border hover:border-border-bright"
-                  )}
-                >
-                  <div className={cn(
-                    "w-2 h-2 rounded-full flex-shrink-0",
-                    job.status === "IN PROGRESS" && "bg-primary animate-pulse",
-                    job.status === "COMPLETED" && "bg-success",
-                    job.status === "FAILED" && "bg-danger",
-                  )} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground truncate">{job.filename}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      {job.status === "IN PROGRESS" && "Processing..."}
-                      {job.status === "COMPLETED" && `${(job.outputs?.icd10Codes?.length ?? 0) + (job.outputs?.cptCodes?.length ?? 0)} codes`}
-                      {job.status === "FAILED" && "Failed — retry"}
-                    </p>
-                  </div>
-                  {job.status === "IN PROGRESS" && (
-                    <span className="flex-shrink-0 text-[10px] text-primary font-mono">
-                      live
-                    </span>
-                  )}
-                </button>
-              ))}
+            <div>
+              <SectionDivider label={`Session queue · ${jobs.length}`} />
+              <div className="space-y-2">
+                {jobs.map(job => {
+                  const selected = selectedId === job.jobExecutionId;
+                  return (
+                    <div
+                      key={job.jobExecutionId}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedId(job.jobExecutionId)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") setSelectedId(job.jobExecutionId);
+                      }}
+                      className={cn(
+                        "group w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[6px] text-left transition-colors cursor-pointer bg-white border border-line hover:border-line-strong"
+                      )}
+                      style={
+                        selected
+                          ? { borderLeft: "3px solid var(--color-accent)" }
+                          : { borderLeft: "3px solid transparent" }
+                      }
+                    >
+                      <span
+                        className={cn(
+                          "w-1.5 h-1.5 rounded-full shrink-0",
+                          job.status === "IN PROGRESS" && "bg-accent animate-pulse",
+                          job.status === "COMPLETED" && "bg-ok",
+                          job.status === "FAILED" && "bg-bad"
+                        )}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12.5px] font-medium text-ink truncate">
+                          {job.filename}
+                        </p>
+                        <Meta className="mt-0.5 block normal-case tracking-[0.08em]">
+                          {job.status === "IN PROGRESS" && "Processing…"}
+                          {job.status === "COMPLETED" &&
+                            `${(job.outputs?.icd10Codes?.length ?? 0) + (job.outputs?.cptCodes?.length ?? 0)} codes`}
+                          {job.status === "FAILED" && "Failed — retry"}
+                        </Meta>
+                      </div>
+                      {job.status === "IN PROGRESS" && (
+                        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.14em] text-accent">
+                          Live
+                        </span>
+                      )}
+                      <button
+                        onClick={(e) => handleDeleteJob(e, job.jobExecutionId, job.filename)}
+                        title="Delete run"
+                        className="shrink-0 p-1.5 rounded-[4px] text-ink-faint opacity-0 group-hover:opacity-100 hover:text-bad hover:bg-bad-soft transition-all cursor-pointer"
+                      >
+                        <Trash2 size={12} strokeWidth={1.75} />
+                      </button>
+                    </div>
+                  );
+                })}
 
-              {/* Start new parallel job hint */}
-              <div className="pt-1">
-                <button
-                  onClick={() => { setFile(null); setUploadError(null); fileInputRef.current?.click(); }}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-muted-foreground border border-dashed border-border hover:border-primary/50 hover:text-primary transition-all"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Start New Parallel Job
-                </button>
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    onClick={() => { setFile(null); setUploadError(null); fileInputRef.current?.click(); }}
+                    className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint hover:text-accent transition-colors cursor-pointer"
+                  >
+                    <Plus size={11} strokeWidth={1.75} />
+                    New parallel job
+                  </button>
+                  <Link
+                    href="/jobs"
+                    className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.14em] text-accent hover:text-accent-hot transition-colors"
+                  >
+                    View all <ArrowRight size={11} strokeWidth={1.75} />
+                  </Link>
+                </div>
               </div>
             </div>
           )}
         </div>
 
         {/* ── Right: Audit / Results panel ── */}
-        <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+        <div className="lg:col-span-3 bg-white border border-line rounded-[8px] overflow-hidden self-start">
           {!selectedJob ? (
-            <div className="flex flex-col items-center justify-center h-full min-h-[500px] text-center p-8">
-              <div className="w-14 h-14 rounded-2xl bg-surface-2 border border-border flex items-center justify-center mb-4">
-                <Zap className="w-6 h-6 text-muted" />
+            <div className="flex flex-col items-center justify-center min-h-[480px] text-center p-8">
+              <div className="w-12 h-12 rounded-[8px] bg-surface border border-line flex items-center justify-center mb-4">
+                <FileText size={18} strokeWidth={1.5} className="text-ink-faint" />
               </div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">No active job</p>
-              <p className="text-xs text-muted max-w-xs">
-                Upload a PDF and click "Run Coding Job" to see live processing here.
+              <p className="text-[13.5px] font-medium text-ink mb-1">No active job</p>
+              <p className="text-[12.5px] leading-[1.7] text-ink-dim max-w-xs">
+                Upload a PDF and run a coding job to see live processing here.
               </p>
             </div>
           ) : (
             <>
               {/* Job header */}
-              <div className="border-b border-border px-5 py-3.5 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <FileText className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                  <span className="text-sm font-medium text-foreground truncate">
+              <div className="border-b border-line px-5 py-3.5 flex items-center justify-between gap-3 bg-surface">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <FileText size={13} strokeWidth={1.75} className="text-ink-faint shrink-0" />
+                  <span className="text-[13px] font-medium text-ink truncate">
                     {selectedJob.filename}
                   </span>
                 </div>
-                <div className={cn(
-                  "flex-shrink-0 flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full",
-                  selectedJob.status === "IN PROGRESS" && "bg-primary/10 text-primary",
-                  selectedJob.status === "COMPLETED" && "bg-success/10 text-success",
-                  selectedJob.status === "FAILED" && "bg-danger/10 text-danger",
-                )}>
-                  {selectedJob.status === "IN PROGRESS" && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                  )}
-                  {selectedJob.status === "IN PROGRESS" ? "Processing" : selectedJob.status === "COMPLETED" ? "Completed" : "Failed"}
-                </div>
+                <StatusPill status={selectedJob.status} />
               </div>
 
               {/* Tabs */}
-              <div className="flex border-b border-border px-5">
+              <div className="flex gap-7 px-5 pt-4 border-b border-line">
                 <button
                   onClick={() => setJobTab(selectedJob.jobExecutionId, "audit")}
                   className={cn(
-                    "text-xs font-medium py-2.5 px-3 border-b-2 transition-colors -mb-px",
+                    "font-mono text-[11px] uppercase tracking-[0.18em] whitespace-nowrap pb-2.5 border-b transition-colors cursor-pointer -mb-px",
                     selectedJob.activeTab === "audit"
-                      ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
+                      ? "text-accent border-accent"
+                      : "text-ink-faint border-transparent hover:text-ink-dim"
                   )}
                 >
-                  Live Audit
+                  Live audit
                 </button>
                 {selectedJob.status === "COMPLETED" && (
                   <button
                     onClick={() => setJobTab(selectedJob.jobExecutionId, "results")}
                     className={cn(
-                      "text-xs font-medium py-2.5 px-3 border-b-2 transition-colors -mb-px",
+                      "font-mono text-[11px] uppercase tracking-[0.18em] whitespace-nowrap pb-2.5 border-b transition-colors cursor-pointer -mb-px",
                       selectedJob.activeTab === "results"
-                        ? "border-primary text-primary"
-                        : "border-transparent text-muted-foreground hover:text-foreground"
+                        ? "text-accent border-accent"
+                        : "text-ink-faint border-transparent hover:text-ink-dim"
                     )}
                   >
                     Results
